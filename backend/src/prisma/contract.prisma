@@ -1,0 +1,10 @@
+// use prisma-8
+
+model Lecture {
+  id         String   @id @onCreate(cuid(2))
+  fileHash   String   @unique
+  filename   String
+  title      String
+  digestJson Json
+  createdAt  DateTime @default(now())
+}
