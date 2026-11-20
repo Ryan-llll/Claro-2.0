@@ -2,7 +2,15 @@ import { GoogleGenAI } from '@google/genai';
 import type { LectureDigest } from './types.js';
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-const MODEL = process.env.GEMINI_MODEL || 'gemini-4-hydrogen';
+
+const MODELS = [
+  process.env.GEMINI_MODEL || 'gemini-4-hydrogen',
+  'gemini-4-hydrogen',
+  'gemini-3.8-flash',
+  'gemini-3.6-flash',
+  'gemini-3.5-flash-lite',
+  'gemini-3.1-flash-lite',
+];
 
 function buildFallbackDigest(text: string, filename: string): LectureDigest {
   const cleanTitle = filename.replace(/\.[^/.]+$/, '').replace(/[_-]+/g, ' ');
@@ -71,20 +79,23 @@ Rules:
 Lecture text:
 ${text}`;
 
-  try {
-    const response = await ai.models.generateContent({
-      model: MODEL,
-      contents: prompt,
-      config: { responseMimeType: 'application/json' },
-    });
+  for (const model of new Set(MODELS)) {
+    try {
+      const response = await ai.models.generateContent({
+        model,
+        contents: prompt,
+        config: { responseMimeType: 'application/json' },
+      });
 
-    if (!response.text) {
-      throw new Error('Empty response from Gemini');
+      if (response.text) {
+        console.log(`Digest generated using ${model}`);
+        return JSON.parse(response.text) as LectureDigest;
+      }
+    } catch (err) {
+      console.warn(`Model ${model} failed, trying next...`);
     }
-
-    return JSON.parse(response.text) as LectureDigest;
-  } catch (err) {
-    console.error('Gemini API failed, using offline fallback:', err);
-    return buildFallbackDigest(text, filename);
   }
+
+  console.error('All Gemini models failed, using offline fallback.');
+  return buildFallbackDigest(text, filename);
 }
