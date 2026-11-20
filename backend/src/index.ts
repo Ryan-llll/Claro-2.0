@@ -74,8 +74,8 @@ app.post('/api/analyze', upload.single('file'), async (req, res) => {
     }
 
     // Cache miss: parse file -> call Gemini -> save to Neon
-    const text = await extractLectureText(req.file.buffer, req.file.originalname);
-    const digest = await generateLectureDigest(text, req.file.originalname);
+const { text, media } = await extractLectureText(req.file.buffer, req.file.originalname);
+const digest = await generateLectureDigest(text, req.file.originalname, media);
 
     const lecture = await db.orm.public.Lecture.create({
       fileHash,

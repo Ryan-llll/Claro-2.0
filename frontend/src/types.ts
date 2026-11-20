@@ -1,11 +1,11 @@
-export interface TermItem {
+export interface Term {
   term: string;
   simpleEnglish: string;
   french: string;
   darija: string;
 }
 
-export interface FlashcardItem {
+export interface Flashcard {
   heading: string;
   bullets: string[];
   question: string;
@@ -20,17 +20,21 @@ export interface DyslexiaSection {
 export interface LectureDigest {
   title: string;
   summary: string;
-  terms: TermItem[];
-  flashcards: FlashcardItem[];
+  terms: Term[];
+  flashcards: Flashcard[];
   dyslexiaSections: DyslexiaSection[];
   audioScript: string;
 }
 
-export interface LectureRecord {
+export interface Lecture {
   id: string;
-  fileHash: string;
   filename: string;
-  title: string;
+  fileHash: string;
   digestJson: LectureDigest;
   createdAt: string;
+}
+
+export interface AnalyzeResponse {
+  lecture: Lecture;
+  cached?: boolean;
 }
