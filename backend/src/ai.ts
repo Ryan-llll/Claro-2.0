@@ -1,4 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
+import type { MediaPart } from './parser.js';
 import type { LectureDigest } from './types.js';
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -14,7 +15,7 @@ const MODELS = [
 
 function buildFallbackDigest(text: string, filename: string): LectureDigest {
   const cleanTitle = filename.replace(/\.[^/.]+$/, '').replace(/[_-]+/g, ' ');
-  const snippet = text.slice(0, 260).trim() + '...';
+  const snippet = text ? text.slice(0, 260).trim() + '...' : 'Visual slide deck.';
 
   return {
     title: cleanTitle || 'Lecture Notes',
@@ -39,22 +40,18 @@ function buildFallbackDigest(text: string, filename: string): LectureDigest {
         answer: cleanTitle || 'Check the opening slide of your lecture.',
       },
     ],
-    dyslexiaSections: [
-      {
-        heading: cleanTitle || 'Lecture Preview',
-        paragraphs: [snippet],
-      },
-    ],
+    dyslexiaSections: [{ heading: cleanTitle || 'Lecture Preview', paragraphs: [snippet] }],
     audioScript: `Here is a quick preview of ${cleanTitle}. ${snippet}`,
   };
 }
 
 export async function generateLectureDigest(
   text: string,
-  filename: string
+  filename: string,
+  media: MediaPart[] = []
 ): Promise<LectureDigest> {
   const prompt = `You are Claro, an inclusive university study assistant for Moroccan students.
-Turn the following lecture text from "${filename}" into a JSON object matching this exact structure:
+Turn the following lecture content from "${filename}" (text and/or attached slide images/PDF) into a JSON object matching this exact structure:
 {
   "title": "Short clear lecture title",
   "summary": "2-3 sentence plain-English summary",
@@ -74,16 +71,22 @@ Rules:
 - Include 6 to 8 key terms.
 - Include 4 to 5 flashcards (max 3 short bullets each).
 - Keep dyslexiaSections short and scannable.
+- Base your response ONLY on the provided text/images. Never invent a topic from the filename.
 - Return ONLY valid JSON.
 
-Lecture text:
-${text}`;
+Extracted text (may be empty if slides are images):
+${text || '(Read the attached images/PDF)'}`;
+
+  const contents =
+    media.length > 0
+      ? [{ text: prompt }, ...media.map((m) => ({ inlineData: m }))]
+      : prompt;
 
   for (const model of new Set(MODELS)) {
     try {
       const response = await ai.models.generateContent({
         model,
-        contents: prompt,
+        contents,
         config: { responseMimeType: 'application/json' },
       });
 
