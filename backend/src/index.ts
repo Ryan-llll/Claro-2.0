@@ -10,7 +10,14 @@ import { generateLectureDigest } from './ai.js';
 const app = express();
 const PORT = Number(process.env.PORT) || 4000;
 
-app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5173' }));
+app.use(
+  cors({
+    origin: [
+      'http://localhost:5173',
+      'https://claro-solo-aui.vercel.app',
+    ],
+  })
+);
 app.use(express.json());
 
 const upload = multer({
